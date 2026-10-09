@@ -20,6 +20,13 @@ python src/run_all.py                                            # clean -> fore
 python src/run_all.py --questions spec/25_unseen_questions.md    # ...and answer the question set
 streamlit run app.py                                             # simple UI
 ```
+**Only the submitted model** (fast, about 5 s, same `predictions.csv`):
+```bash
+python src/clean.py
+python src/forecast.py --model ridge_strong
+```
+Without `--model`, `forecast.py` re-validates all 14 candidates and picks the best by the pre-declared rule (currently `ridge_strong`).
+
 `run_all.py` stops at the first failing step. Each step can also run on its own:
 
 | Step | Command | Output |

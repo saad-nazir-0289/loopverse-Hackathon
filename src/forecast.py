@@ -241,6 +241,10 @@ def main():
                     help="flag hazardous when predicted PM2.5 >= this (default: SPEC value 165)")
     ap.add_argument("--tag", default="", help="suffix for outputs/ files, e.g. for ablation runs")
     args = ap.parse_args()
+    if args.model:  # fast path: validate and fit only this model (+ the two baselines for comparison)
+        for name in [m for m in MODELS if m not in {args.model, *BASELINES}]:
+            del MODELS[name]
+        print(f"single-model run: {args.model} (+ baselines {sorted(BASELINES)})")
     if not args.no_calendar:
         FEATURES.extend(CALENDAR_FEATURES)
     if not args.no_spike:
