@@ -57,6 +57,23 @@ What adapts automatically:
 
 The cleaning step **fails loudly** if timezone or units do not line up (cross-network gap ≥ 1 µg/m³, coverage < 90%, non-integer AQI). `tests/test_assistant.py` asks about specific supplied areas and dates, so `run_all.py` treats it as a warning on other data.
 
+## Hazardous alarm threshold
+SPEC's rule is `hazardous = predicted_pm25 >= 165`, which is the default everywhere. To use another alarm threshold:
+
+| Where | How |
+|---|---|
+| `predictions.csv` | `python src/forecast.py --alarm-threshold 150` (or `python src/run_all.py --alarm-threshold 150`) |
+| Streamlit UI | sidebar **Alarm threshold**: updates the forecast flag, the assistant's answers, the charts, and the downloadable `predictions.csv`, and shows what that threshold would have caught and falsely flagged in validation |
+| Assistant / forecast tool | `ADVISOR_ALARM_THRESHOLD=150` in `.env` or the environment |
+
+The alarm only changes the `hazardous` yes/no flag. The documents' own thresholds (DOC-01 health bands, DOC-03 school rules, DOC-05 odd-even, DOC-08 construction) are policy facts and stay as written.
+
+## Streamlit UI
+```bash
+streamlit run app.py        # http://localhost:8501
+```
+Tabs: **Ask the assistant** (answer, sources, forecast_called, cited documents, raw SPEC JSON), **Forecast** (area/date lookup and an all-areas chart), **All predictions** (table, download, daily trend). For a public link, deploy the GitHub repo on share.streamlit.io with main file `app.py`; add `OPENAI_API_KEY` under Secrets only if LLM answers are wanted.
+
 ## LLM configuration
 The assistant works with no LLM: deterministic, extractive, cited answers. With an LLM it writes shorter natural answers, which are validated (citations, numbers, injection) before use. Settings live in `.env` (copy `.env.example`; `.env` is git-ignored) or in environment variables:
 

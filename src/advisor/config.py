@@ -42,7 +42,11 @@ def _default_today():
 # "Tomorrow" means TODAY + 1 = the first forecast day. Override with ADVISOR_TODAY=YYYY-MM-DD.
 TODAY = os.environ.get("ADVISOR_TODAY") or _default_today()
 
-HAZARD = 165.0           # SPEC section 3 and DOC-01
+HAZARD = 165.0           # SPEC section 3 and DOC-01: what the DOCUMENTS call hazardous (fixed)
+# Alarm threshold for the hazardous yes/no flag (forecast tool, UI, predictions download).
+# None = use the "hazardous" column of predictions.csv as written by forecast.py.
+_alarm = os.environ.get("ADVISOR_ALARM_THRESHOLD")
+ALARM_THRESHOLD = float(_alarm) if _alarm else None
 UNHEALTHY = 100.0        # DOC-01 band boundary
 SCHOOL_FULL_CLOSURE = 250.0  # DOC-03
 

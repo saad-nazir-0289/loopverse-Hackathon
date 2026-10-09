@@ -17,6 +17,7 @@ from advisor.forecast_tool import forecast, supported_dates  # noqa: E402
 from advisor.understand import AREAS  # noqa: E402
 
 st.set_page_config(page_title="Lahore Smog Intelligence", page_icon="🌫️", layout="wide")
+SPEC_THRESHOLD = config.HAZARD  # 165, SPEC section 3
 
 
 @st.cache_data
@@ -26,17 +27,41 @@ def predictions():
     return p.merge(meta, on="sensor_id")
 
 
+@st.cache_data
+def validation():
+    """Walk-forward predictions of the submitted model, to show what a threshold would have done."""
+    try:
+        scores = pd.read_csv(ROOT / "outputs" / "walk_forward_scores.csv", index_col=0)
+        model = scores.drop(index=["persistence", "mean7"], errors="ignore").index[0]
+        cv = pd.read_csv(ROOT / "outputs" / "walk_forward_predictions.csv")
+        return model, cv[["y", model]].rename(columns={model: "pred"})
+    except Exception:
+        return None, None
+
+
 st.title("Lahore Smog Intelligence")
 st.caption(f"Next-day PM2.5 forecasts for 15 Lahore areas ({supported_dates()[0]} to {supported_dates()[-1]}) "
            "and an advisory assistant that cites the supplied guidance.")
 
 with st.sidebar:
+    st.header("Hazardous alarm")
+    thr = st.number_input("Alarm threshold (µg/m³)", min_value=50.0, max_value=400.0, value=SPEC_THRESHOLD,
+                          step=5.0, help="A forecast at or above this value is flagged hazardous. SPEC default: 165.")
+    config.ALARM_THRESHOLD = float(thr)  # used by forecast(), ask(), charts and the download below
+    if thr != SPEC_THRESHOLD:
+        st.info(f"Custom alarm: {thr:g} µg/m³ (SPEC uses {SPEC_THRESHOLD:g}). Document health bands and "
+                "policy rules still use the documents' own thresholds.")
+    model, cv = validation()
+    if cv is not None:
+        y, flag = cv.y >= SPEC_THRESHOLD, cv.pred >= thr
+        caught, fa = int((y & flag).sum()), int((~y & flag).sum())
+        st.caption(f"Validation ({len(cv)} past forecasts, {int(y.sum())} truly hazardous) at this threshold: "
+                   f"**{caught} caught**, **{fa} false alarms**, {int(flag.sum())} flagged.")
+    st.divider()
     st.header("System")
     st.write(f"**Answer writer:** {'LLM: ' + config.LLM_MODEL if llm.available() else 'deterministic (no LLM)'}")
     st.write(f"**Scenario date (today):** {config.TODAY}")
     st.write(f"**Forecast source:** {'team model' if config.PREDICTIONS.exists() else 'reference fallback'}")
-    st.write(f"**Hazardous threshold:** {config.HAZARD:g} µg/m³")
-    st.divider()
     st.caption("Documents are treated as evidence, never as instructions. Out-of-scope places and dates "
                "get no number.")
 
@@ -45,6 +70,7 @@ tab_ask, tab_fc, tab_pred = st.tabs(["Ask the assistant", "Forecast", "All predi
 with tab_ask:
     examples = ["Should schools in Walled City close on 5 November?",
                 "Is it safe for children to play outside in Gulberg tomorrow?",
+                "Will Lahore be hazardous tomorrow?",
                 "What mask protects against PM2.5?",
                 "What is the PM2.5 forecast for Karachi tomorrow?",
                 "Kal Johar Town mein bachon ko school bhejna chahiye?"]
@@ -68,6 +94,9 @@ with tab_ask:
         with st.expander("Raw output (SPEC schema)"):
             st.json(res)
 
+p = predictions().copy()
+p["hazardous"] = (p["predicted_pm25"] >= thr).astype(int)
+
 with tab_fc:
     c1, c2 = st.columns(2)
     area = c1.selectbox("Area", list(AREAS))
@@ -76,29 +105,36 @@ with tab_fc:
     if fc["status"] == "ok":
         m1, m2, m3 = st.columns(3)
         m1.metric("Forecast PM2.5 (µg/m³)", f"{fc['pm25']:g}")
-        m2.metric("Hazardous (≥ 165)", "YES" if fc["hazardous"] else "no")
+        m2.metric(f"Hazardous (≥ {thr:g})", "YES" if fc["hazardous"] else "no")
         m3.metric("Source", fc["source"])
     else:
         st.warning("No forecast available for this area and date.")
     st.json(fc)
-    p = predictions()
     day_df = p[p.target_date == day].sort_values("predicted_pm25", ascending=False)
     bars = alt.Chart(day_df).mark_bar().encode(
         x=alt.X("predicted_pm25:Q", title="Forecast PM2.5 (µg/m³)"),
         y=alt.Y("area:N", sort="-x", title=None),
-        color=alt.condition(alt.datum.area == area, alt.value("#d62828"), alt.value("#4c78a8")),
+        color=alt.condition(alt.datum.predicted_pm25 >= thr, alt.value("#d62828"), alt.value("#4c78a8")),
+        opacity=alt.condition(alt.datum.area == area, alt.value(1.0), alt.value(0.6)),
         tooltip=["area", "sensor_id", "predicted_pm25", "hazardous"])
-    rule = alt.Chart(pd.DataFrame({"x": [config.HAZARD]})).mark_rule(strokeDash=[4, 4], color="black").encode(x="x")
+    rule = alt.Chart(pd.DataFrame({"x": [thr]})).mark_rule(strokeDash=[4, 4], color="black").encode(x="x")
     st.subheader(f"All areas on {day}")
     st.altair_chart(bars + rule, width="stretch")
-    st.caption("Dashed line: hazardous threshold 165 µg/m³. Forecasts are 1-10 days ahead of the last observation; "
-               "typical error is about ±13 µg/m³ and sudden one-day spikes cannot be predicted.")
+    st.caption(f"Dashed line and red bars: alarm threshold {thr:g} µg/m³. Forecasts are 1-10 days ahead of the "
+               f"last observation; typical error is about ±{config.TYPICAL_ERROR} µg/m³ and sudden one-day spikes "
+               "cannot be predicted.")
 
 with tab_pred:
-    p = predictions()
+    flagged = int(p.hazardous.sum())
+    st.write(f"**{flagged} of {len(p)}** rows flagged hazardous at the alarm threshold **{thr:g} µg/m³**.")
     st.dataframe(p[["sensor_id", "area", "target_date", "predicted_pm25", "hazardous"]], width="stretch",
                  hide_index=True)
-    st.download_button("Download predictions.csv", config.PREDICTIONS.read_bytes(), "predictions.csv", "text/csv")
-    trend = p.groupby("target_date", as_index=False).predicted_pm25.agg(["mean", "min", "max"]).reset_index()
+    sub = p[["sensor_id", "target_date", "predicted_pm25", "hazardous"]]  # SPEC section 4 column order
+    st.download_button(f"Download predictions.csv (alarm at {thr:g})", sub.to_csv(index=False).encode(),
+                       "predictions.csv", "text/csv")
+    st.caption("The predictions.csv in the repository is written by `python src/forecast.py` "
+               f"(SPEC threshold {SPEC_THRESHOLD:g}). To write it with another threshold: "
+               f"`python src/forecast.py --alarm-threshold {thr:g}`.")
+    trend = p.groupby("target_date").predicted_pm25.agg(["min", "mean", "max"])
     st.subheader("City-wide forecast by day")
-    st.line_chart(trend.set_index("target_date")[["min", "mean", "max"]])
+    st.line_chart(trend)

@@ -9,7 +9,7 @@ import re
 from datetime import date, timedelta
 
 from . import config, llm
-from .forecast_tool import forecast_detail, supported_dates
+from .forecast_tool import alarm_threshold, forecast_detail, supported_dates
 from .policy import facts_for, health_band, next_day, topics_in, valid_rule_sources
 from .retrieval import Retriever
 from .understand import AREAS, understand
@@ -47,8 +47,17 @@ def _forecast_sentence(fc, ur):
                 f"hai: {UR[band]}. Yeh {src} ki forecast hai; aam ghalti taqreeban ±{config.TYPICAL_ERROR} µg/m³, "
                 f"aur achanak ek din ke spike pehle se nahi bataye ja sakte.")
     return (f"Forecast for {fc['location']} on {_fmt_date(fc['target_date'])}: PM2.5 about {fc['pm25']:g} µg/m³, "
-            f"which is {band}{' (HAZARDOUS)' if fc['hazardous'] and 'hazardous' not in band else ''}. This is a {src} forecast "
+            f"which is {band}{_alarm_note(fc, band)}. This is a {src} forecast "
             f"with a typical error of about ±{config.TYPICAL_ERROR} µg/m³; sudden one-day spikes cannot be predicted.")
+
+
+def _alarm_note(fc, band):
+    """Explain an alarm flag that differs from the documents' hazardous band (custom threshold)."""
+    if fc["hazardous"] and band != "hazardous":
+        return f"; it is flagged by the early-warning hazardous alarm (threshold {alarm_threshold():g} µg/m³)"
+    if not fc["hazardous"] and band == "hazardous":
+        return f"; the alarm (threshold {alarm_threshold():g} µg/m³) does not flag it"
+    return ""
 
 
 def band_guidance(pm):
@@ -149,7 +158,7 @@ def validate(out, u, plan):
         allowed |= {d.day, d.year, d.month}
     for s in plan["scope_msgs"] + [plan.get("city_summary") or ""]:
         allowed |= _numbers(s)
-    allowed |= _numbers(u.question) | {config.TYPICAL_ERROR, 2.5, 15, 13, 10, 2026}
+    allowed |= _numbers(u.question) | {config.TYPICAL_ERROR, 2.5, 15, 13, 10, 2026, alarm_threshold()}
     for d in supported_dates():
         dd = date.fromisoformat(d)
         allowed |= {dd.day, dd.month}
@@ -229,6 +238,9 @@ def _plan(u):
                 plan["evidence"] += _chunks_of("DOC-13")
             elif u.area:
                 fc = oks[0]
+                note = _alarm_note(fc, health_band(fc["pm25"])[0])
+                if note:
+                    plan["alarm_note"] = note.lstrip("; ").capitalize() + "."
                 plan["forecasts_ok"] = [fc]
                 nd = None
                 if "vehicle" in topics:
@@ -241,7 +253,8 @@ def _plan(u):
                 plan["city_summary"] = (
                     f"Across the 15 covered Lahore areas on {_fmt_date(d)}, forecast PM2.5 ranges from {lo['pm25']:g} "
                     f"({lo['location']}) to {hi['pm25']:g} µg/m³ ({hi['location']}); "
-                    + (f"hazardous in: {', '.join(haz)}." if haz else "no area is forecast hazardous (≥ 165).")
+                    + (f"hazardous alarm (≥ {alarm_threshold():g}) for: {', '.join(haz)}." if haz
+                       else f"no area triggers the hazardous alarm (≥ {alarm_threshold():g}).")
                     + " Name your area for a specific forecast.")
                 plan["forecasts_ok_city"] = oks
                 plan["facts"] = [(f"Highest area forecast {hi['pm25']:g} µg/m³ is in the "
@@ -283,6 +296,8 @@ def _ask(question, question_id=None, client=None):
             facts = list(plan["facts"]) + [(m, "scope") for m in plan["scope_msgs"]]
             if plan.get("city_summary"):
                 facts.append((plan["city_summary"], "forecast"))
+            if plan.get("alarm_note"):
+                facts.append((plan["alarm_note"], "forecast alarm setting"))
             out = llm.write_answer(question, "Roman Urdu" if u.roman_urdu else "English",
                                    plan["evidence"], fc_payload, facts, client=client)
             ok, why = validate(out, u, plan)

@@ -75,8 +75,14 @@ def forecast_detail(location, target_date):
     pm = float(row["predicted_pm25"])
     if not pd.notna(pm):
         return out, "forecast value missing"
-    out.update(pm25=round(pm, 1), hazardous=bool(int(row["hazardous"])), status="ok")
+    flag = pm >= config.ALARM_THRESHOLD if config.ALARM_THRESHOLD is not None else bool(int(row["hazardous"]))
+    out.update(pm25=round(pm, 1), hazardous=bool(flag), status="ok")
     return out, "ok"
+
+
+def alarm_threshold():
+    """The threshold the hazardous flag currently uses."""
+    return config.ALARM_THRESHOLD if config.ALARM_THRESHOLD is not None else config.HAZARD
 
 
 def forecast(location, target_date):
