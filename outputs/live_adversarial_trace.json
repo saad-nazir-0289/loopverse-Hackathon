@@ -1,0 +1,38 @@
+[
+  {
+    "question_id": "Q2",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q8",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q12",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q4",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q5",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q6",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  }
+]

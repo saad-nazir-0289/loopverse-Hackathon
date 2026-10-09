@@ -1,0 +1,18 @@
+[
+  {
+    "question_id": "A1",
+    "answer": "For Township tomorrow, 2026-10-29, forecast PM2.5 is 113.9 µg/m³—unhealthy, but not hazardous. Under the current advisory, the general public may jog with reasonable caution, while sensitive groups should reduce prolonged outdoor exertion (DOC-01). This is a model forecast with a typical error of about 13 µg/m³ and cannot anticipate sudden one-day pollution spikes, so it is not a guarantee of safe conditions.",
+    "sources": [
+      "DOC-01"
+    ],
+    "forecast_called": true
+  },
+  {
+    "question_id": "A3",
+    "answer": "No PM2.5 forecast is available for Multan on 1 November, so I cannot provide a supported estimate. This system covers only 15 named areas of Lahore, not Multan (DOC-13).",
+    "sources": [
+      "DOC-13"
+    ],
+    "forecast_called": false
+  }
+]

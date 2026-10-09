@@ -1,0 +1,24 @@
+  fold 2026-08-09 done
+  fold 2026-08-16 done
+  fold 2026-08-23 done
+  fold 2026-08-30 done
+  fold 2026-09-06 done
+  fold 2026-09-13 done
+  fold 2026-09-20 done
+  fold 2026-09-27 done
+  fold 2026-10-04 done
+  fold 2026-10-11 done
+  fold 2026-10-18 done
+
+All configs (tune = folds 4-7, 600 rows; test = folds 8-11, 600 rows):
+family                    config  tune_MAE  test_MAE  test_RMSE  test_bias  test_folds_beating_ridge
+ Ridge           ridge (current)    13.065    12.737     20.429     -1.568                         0
+  LSTM  lstm hidden=32 epochs=40    14.969    14.368     22.289     -2.315                         0
+  LSTM  lstm hidden=16 epochs=40    14.994    14.372     22.307     -2.471                         0
+  LSTM lstm hidden=32 epochs=120    15.080    14.495     22.448     -2.513                         0
+  LSTM lstm hidden=16 epochs=120    15.113    14.483     22.415     -2.340                         0
+
+Best config per family (chosen on TUNE folds), scored on untouched TEST folds:
+family                   config  tune_MAE  test_MAE  test_RMSE  test_bias  test_folds_beating_ridge
+ Ridge          ridge (current)    13.065    12.737     20.429     -1.568                         0
+  LSTM lstm hidden=32 epochs=40    14.969    14.368     22.289     -2.315                         0

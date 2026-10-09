@@ -1,0 +1,95 @@
+features (30): calendar=True spike=True target_weather=False
+last observation 2026-10-28; holdout needs horizons 1..10 days ahead
+fold origin=2026-09-13  train targets 2026-07-02..2026-09-13 (10395 rows)  test targets 2026-09-14..2026-09-23 (150 rows)
+fold origin=2026-09-20  train targets 2026-07-02..2026-09-20 (11445 rows)  test targets 2026-09-21..2026-09-30 (150 rows)
+fold origin=2026-09-27  train targets 2026-07-02..2026-09-27 (12495 rows)  test targets 2026-09-28..2026-10-07 (150 rows)
+fold origin=2026-10-04  train targets 2026-07-02..2026-10-04 (13545 rows)  test targets 2026-10-05..2026-10-14 (150 rows)
+fold origin=2026-10-11  train targets 2026-07-02..2026-10-11 (14595 rows)  test targets 2026-10-12..2026-10-21 (150 rows)
+fold origin=2026-10-18  train targets 2026-07-02..2026-10-18 (15645 rows)  test targets 2026-10-19..2026-10-28 (150 rows)
+
+Selection folds (origins before 2026-10-18, 750 rows), sorted by mean rank over ['MAE', 'RMSE', 'MAE_high', 'abs_bias', 'PR_AUC']; confirm_* = untouched fold at origin 2026-10-18:
+
+-- point-forecast error --
+                   mean_rank     MAE    RMSE   MAPE%   bias     R2  MAE_high  bias_high  skill_vs_mean7%  MAE_fold_std
+ridge_strong             3.6  13.163  21.712  11.664 -1.640  0.433    60.176    -60.176           16.236         1.289
+ridge                    4.2  13.169  21.738  11.682 -1.568  0.432    60.292    -60.292           16.194         1.219
+ridge+xgb                4.2  13.200  21.763  11.602 -1.836  0.430    59.818    -59.818           15.996         1.331
+ridge+lgbm               5.2  13.265  21.814  11.656 -2.013  0.428    60.098    -60.098           15.587         1.372
+huber                    5.4  12.957  21.647  11.298 -2.782  0.436    60.962    -60.962           17.547         1.181
+ridge+extra_trees        6.2  13.278  21.832  11.696 -2.007  0.427    60.058    -60.058           15.503         1.273
+xgb                      6.6  13.708  22.128  11.972 -2.104  0.411    59.345    -59.345           12.768         1.469
+elasticnet               6.8  13.465  21.914  11.928 -1.729  0.422    60.838    -60.838           14.313         1.416
+random_forest            7.6  13.843  22.171  12.134 -2.340  0.409    59.235    -59.235           11.910         1.366
+extra_trees              9.0  13.790  22.224  12.080 -2.445  0.406    59.823    -59.823           12.246         1.306
+hgb                      9.4  14.079  22.479  12.304 -2.336  0.392    59.379    -59.379           10.406         1.348
+lgbm                     9.8  13.868  22.299  12.089 -2.457  0.402    59.903    -59.903           11.747         1.515
+mean7                   13.0  15.714  24.054  13.607 -4.105  0.304    65.575    -65.575            0.000         1.768
+persistence             14.0  20.771  31.989  18.363 -4.927 -0.231    65.994    -65.994          -32.178         5.805
+
+-- hazardous alarm (SPEC rule: predicted >= 165) --
+                   haz_true  recall  precision   F1  false_alarms  FA_rate  PR_AUC
+ridge_strong           24.0     0.0        NaN  0.0           0.0    0.000   0.091
+ridge                  24.0     0.0        NaN  0.0           0.0    0.000   0.090
+ridge+xgb              24.0     0.0        NaN  0.0           0.0    0.000   0.090
+ridge+lgbm             24.0     0.0        NaN  0.0           0.0    0.000   0.092
+huber                  24.0     0.0        NaN  0.0           0.0    0.000   0.093
+ridge+extra_trees      24.0     0.0        NaN  0.0           0.0    0.000   0.070
+xgb                    24.0     0.0        NaN  0.0           0.0    0.000   0.062
+elasticnet             24.0     0.0        NaN  0.0           0.0    0.000   0.089
+random_forest          24.0     0.0        NaN  0.0           0.0    0.000   0.060
+extra_trees            24.0     0.0        NaN  0.0           0.0    0.000   0.054
+hgb                    24.0     0.0        NaN  0.0           0.0    0.000   0.052
+lgbm                   24.0     0.0        NaN  0.0           0.0    0.000   0.060
+mean7                  24.0     0.0        NaN  0.0           0.0    0.000   0.043
+persistence            24.0     0.0        0.0  0.0          20.0    0.028   0.040
+(PR_AUC chance level = 0.032)
+
+-- untouched confirmation fold --
+                   confirm_MAE  confirm_RMSE  confirm_bias  confirm_MAE_high  confirm_PR_AUC
+ridge_strong            13.140        21.284        -1.683            37.800           0.064
+ridge                   12.992        21.169        -1.869            37.516           0.064
+ridge+xgb               13.151        21.426        -0.589            35.995           0.057
+ridge+lgbm              13.255        21.408        -0.371            35.270           0.057
+huber                   12.929        21.245        -2.707            37.616           0.050
+ridge+extra_trees       13.277        21.434        -1.257            36.392           0.056
+xgb                     13.896        21.999         0.692            34.474           0.049
+elasticnet              13.462        21.775        -1.725            39.456           0.057
+random_forest           14.160        22.189         0.172            33.925           0.052
+extra_trees             14.213        22.118        -0.645            35.269           0.051
+hgb                     14.316        22.408         0.685            34.611           0.046
+lgbm                    14.222        22.190         1.128            33.024           0.050
+mean7                   15.718        24.294        -2.884            43.010           0.037
+persistence             18.678        26.646        -9.829            52.161           0.064
+
+MAE by fold:
+            persistence  mean7  ridge  ridge_strong  elasticnet  huber   hgb   xgb  lgbm  extra_trees  random_forest  ridge+xgb  ridge+lgbm  ridge+extra_trees
+cutoff                                                                                                                                                        
+2026-09-13         19.3   16.2   14.3          14.3        14.4   14.0  15.1  14.6  14.8         14.7           14.9       14.2        14.4               14.4
+2026-09-20         17.9   15.8   13.7          13.7        13.7   13.5  14.9  14.6  14.7         14.7           14.9       13.8        13.9               13.9
+2026-09-27         16.9   13.7   11.2          11.1        11.3   11.1  12.3  11.5  11.8         11.9           11.8       11.1        11.2               11.3
+2026-10-04         18.7   14.5   12.7          12.7        13.0   12.6  12.9  12.9  12.7         13.0           13.1       12.7        12.5               12.7
+2026-10-11         31.0   18.3   13.9          14.0        15.0   13.7  15.2  15.0  15.3         14.7           14.5       14.2        14.4               14.1
+2026-10-18         18.7   15.7   13.0          13.1        13.5   12.9  14.3  13.9  14.2         14.2           14.2       13.2        13.3               13.3
+
+MAE by horizon (all folds):
+    persistence  mean7  ridge  ridge_strong  elasticnet  huber   hgb   xgb  lgbm  extra_trees  random_forest  ridge+xgb  ridge+lgbm  ridge+extra_trees
+h                                                                                                                                                     
+1          17.7   15.5   12.3          12.3        12.9   12.0  12.8  12.9  12.7         13.3           13.8       12.5        12.4               12.7
+2          20.6   16.2   14.1          14.3        14.7   13.9  15.6  15.0  15.1         14.9           15.3       14.0        14.0               14.0
+3          22.0   15.6   14.2          14.3        14.5   14.1  14.6  14.7  15.0         14.9           14.5       14.3        14.4               14.4
+4          19.7   15.2   11.8          11.8        12.0   11.5  12.5  12.3  12.8         12.8           12.4       11.8        12.1               12.1
+5          25.3   21.0   15.4          15.6        16.2   15.4  18.0  17.0  17.2         17.2           17.1       15.9        16.0               16.1
+6          20.2   14.3   11.6          11.7        11.7   11.5  11.5  11.3  11.2         11.9           11.6       11.3        11.2               11.5
+7          19.6   13.4   12.1          12.0        12.0   12.1  12.7  12.4  12.7         12.5           12.8       12.1        12.2               12.1
+8          16.7   13.8   12.3          12.1        12.3   12.0  12.5  12.3  12.1         12.2           11.9       12.1        12.0               12.0
+9          19.7   15.0   13.4          13.4        13.7   13.2  15.0  14.6  15.0         14.3           14.6       13.6        13.9               13.5
+10         22.7   17.1   14.0          14.1        14.6   13.8  15.8  15.0  15.4         14.7           14.9       14.3        14.5               14.3
+
+chosen model: ridge_strong (mean rank 3.6)
+  MAE       model  13.163   mean7 baseline  15.714   confirm: model  13.140 / mean7  15.718
+  RMSE      model  21.712   mean7 baseline  24.054   confirm: model  21.284 / mean7  24.294
+  MAE_high  model  60.176   mean7 baseline  65.575   confirm: model  37.800 / mean7  43.010
+  bias      model  -1.640   mean7 baseline  -4.105   confirm: model  -1.683 / mean7  -2.884
+  PR_AUC    model   0.091   mean7 baseline   0.043   confirm: model   0.064 / mean7   0.037
+
+wrote predictions.csv with model=ridge_strong, alarm at predicted >= 165: 150 rows, 0 hazardous, PM2.5 range 102.7..163.9

@@ -1,72 +1,84 @@
-# Lahore Smog Intelligence Challenge
-### Loopverse 3.0 — AI/ML Module | 4 Hours | Participant Pack
+# Lahore Smog Intelligence: Loopverse 3.0 AI/ML
 
-Predict tomorrow's air quality for Lahore, then build a grounded advisory assistant that uses your forecast and cites official guidance.
+Next-day PM2.5 forecasts and a hazardous alarm for 15 Lahore sensors (Sprint 1), and a grounded advisory assistant that calls the forecast and cites the supplied guidance (Sprint 2).
 
----
+| Deliverable | File |
+|---|---|
+| Forecast submission | [`predictions.csv`](predictions.csv) (150 rows, SPEC section 4) |
+| Assistant | `ask(question)` and `forecast(location, target_date)` in [`src/assistant.py`](src/assistant.py) |
+| Answers to the question set | `answers.json` / `answers.csv` (generated, see below) |
+| Recommendation | [`RECOMMENDATION.md`](RECOMMENDATION.md) |
+| AI error log | [`AI_ERROR_LOG.md`](AI_ERROR_LOG.md) |
+| Method and evidence | [`SPRINT1.md`](SPRINT1.md), [`SPRINT2.md`](SPRINT2.md), [`outputs/trap_audit.md`](outputs/trap_audit.md) |
+| Original challenge README | [`CHALLENGE_README.md`](CHALLENGE_README.md) |
 
-## What you are building
+## Quick start
+Python 3.11+.
+```bash
+pip install -r requirements.txt
+python src/run_all.py                                            # clean -> forecast -> tests -> audit
+python src/run_all.py --questions spec/25_unseen_questions.md    # ...and answer the question set
+streamlit run app.py                                             # simple UI
+```
+`run_all.py` stops at the first failing step. Each step can also run on its own:
 
-One connected system, built in two linked parts:
-
-| Part | You build | You submit |
+| Step | Command | Output |
 |---|---|---|
-| **Forecasting** | A model that predicts next-day PM2.5 and a hazardous alert for 15 sensors across 10 forecast days | `predictions.csv` |
-| **Advisory assistant** | A retrieval-based assistant (`ask(question)`) that answers questions using the supplied documents and your own forecast, with real citations | Live answers, generated during evaluation |
+| 1. Clean and standardise | `python src/clean.py` | `data/processed/daily_pm25.csv` + audit printout + assertions |
+| 2. Forecast | `python src/forecast.py` | walk-forward report, `outputs/walk_forward_*.csv`, **`predictions.csv`** |
+| 3. Leakage proof | `python tests/test_leakage.py` | 4 tests |
+| 4. Trap evidence | `python src/audit_traps.py` | `outputs/trap_audit.md`, `outputs/figures/` |
+| 5. Assistant tests | `python tests/test_assistant.py` | 11 tests, no API key needed |
+| 6. Answer questions | `python src/run_questions.py <file> --trace` | `answers.json`, `answers.csv`, `answers_trace.json` |
+| One question | `python src/assistant.py "Should schools in DHA close tomorrow?"` | JSON in the SPEC schema |
+| Experiments (optional) | `python src/experiments.py`, `python src/experiments_ml.py` | model and alarm comparisons |
 
-Read **[`spec/SPEC.md`](spec/SPEC.md)** before writing any code — it is the exact contract your files must follow. Read **[`spec/RULES.md`](spec/RULES.md)** for what tools are allowed and the submission policy.
+## Running on the judges' own files
+Put files with the **same names and columns** in the same folders, then rerun `python src/run_all.py`. Nothing is hard-coded to the supplied dates, sensors or row counts.
 
-> **Note on the assistant's question set:** the questions your `ask(question)` function will be evaluated against are **not included in this repository**. They will be published separately near the end of the build window. Build and test your assistant against your own sample questions in the meantime — see the question categories described in `spec/SPEC.md` section 6.
+| Folder / file | Columns | Notes |
+|---|---|---|
+| `sensors/batch_1_sensor_data.csv` | `sensor_id, timestamp, reading_value` | PM2.5 µg/m³, UTC. Several readings per day are averaged per Pakistan-time day. `-999` = missing |
+| `sensors/batch_2_sensor_data.csv` | `sensor_id, timestamp, reading_value` | AQI (integer 0–500), Pakistan time. Converted to PM2.5 with the US EPA (pre-2024) breakpoints |
+| `weather/weather_history.csv` | `date, temp_c, humidity_pct, wind_kmh` | daily |
+| `weather/sensor_metadata.csv` | `sensor_id, area, batch, timezone, unit_type` | defines the covered areas for the assistant |
+| `holdout/holdout_inputs.csv` | `sensor_id, forecast_origin_date, target_date, area` | any number of rows and days ahead; `predictions.csv` gets exactly these pairs |
+| `holdout/holdout_weather.csv` | `date, temp_c, humidity_pct, wind_kmh` | not used by default (it is after the forecast origin) |
+| `docs/*.md` | metadata block with `document_id, title, authority, published_date, status[, supersedes, superseded_by]` | any number of documents; files without `document_id` are skipped with a warning |
+| question set | `.md`, `.txt`, `.csv` (`question_id, question`) or `.json` | `python src/run_questions.py <file>`; labels like `1.`, `Q1:`, `A3.` and markdown tables are read; skipped lines are reported |
+| reference forecast (if released) | `sensor_id, target_date, predicted_pm25[, hazardous]` | save as `reference/reference_forecast.csv` and set `ADVISOR_FORECAST_SOURCE=reference` |
 
-## Submission policy — read this first
+What adapts automatically:
+- the forecast horizon follows the holdout;
+- the assistant's "today" is the day before the first holdout target (override with `ADVISOR_TODAY=YYYY-MM-DD`);
+- covered areas come from the metadata, and the supported dates from the holdout;
+- the "typical error" quoted in answers comes from the latest validation run;
+- the coded policy rules (school, odd-even, construction, health bands) are used only if their documents exist and still state the same thresholds.
 
-**This event has exactly one submission, made at the end of the 4-hour window.** There is no early checkpoint and no second attempt — `predictions.csv`, your repository, your answers, your AI error log, and your recommendation are all submitted together, once, at the deadline. Validate everything locally before then.
+The cleaning step **fails loudly** if timezone or units do not line up (cross-network gap ≥ 1 µg/m³, coverage < 90%, non-integer AQI). `tests/test_assistant.py` asks about specific supplied areas and dates, so `run_all.py` treats it as a warning on other data.
 
-## Repository contents
+## LLM configuration
+The assistant works with no LLM: deterministic, extractive, cited answers. With an LLM it writes shorter natural answers, which are validated (citations, numbers, injection) before use. Settings live in `.env` (copy `.env.example`; `.env` is git-ignored) or in environment variables:
 
+| Variable | Meaning |
+|---|---|
+| `OPENAI_API_KEY` | key for the provider (any non-empty value for local Ollama) |
+| `OPENAI_BASE_URL` | any OpenAI-compatible endpoint (default: OpenAI) |
+| `OPENAI_MODEL`, `OPENAI_FALLBACK_MODEL` | model names for that provider |
+| `ADVISOR_LLM_API` | `auto` (default), `responses` or `chat`; `chat` is what most compatible providers offer |
+| `ADVISOR_LLM=none` | force deterministic answers |
+
+## Repository layout
 ```
-sensors/
-  network_a_utc_pm25.csv      Sensor network A — UTC timestamps, raw PM2.5
-  network_b_pkt_aqi.csv       Sensor network B — Pakistan local time, AQI
-
-weather/
-  weather_history.csv         Daily weather covering the historical period
-  sensor_metadata.csv         Sensor ID, area name, and network for all 15 sensors
-
-holdout/
-  holdout_inputs.csv          The 150 (sensor, date) pairs you must forecast — no answers included
-  holdout_weather.csv         Weather for the 10 forecast days
-
-docs/
-  DOC-01 .. DOC-13             Health, school, policy, transport, and technical documents
-                                for the retrieval assistant to search and cite
-
-templates/
-  predictions_template.csv     Exact column headers for your submission
-  ai_error_log_template.md     Required log of 3 AI tool mistakes your team caught and fixed
-  recommendation_template.md   Final short recommendation write-up
-
-spec/
-  SPEC.md                      File formats, conversion rules, hazardous threshold, function contracts
-  RULES.md                     Allowed tools, cost policy, submission policy
-  25_unseen_questions.md       The question set your assistant will be run against
+src/clean.py            cleaning, timezone/unit conversion, assertions
+src/features.py         leak-free features (lags, rolling, weekday, spike history)
+src/forecast.py         model comparison, walk-forward validation, predictions.csv
+src/audit_traps.py      evidence for the four handbook traps
+src/experiments*.py     method bake-offs (alarm methods, RF/XGBoost/LSTM)
+src/advisor/            assistant: documents, retrieval, understanding, forecast tool, policy rules, LLM, ask()
+src/assistant.py        ask() / forecast() entry point and CLI
+src/run_questions.py    batch answering
+src/run_all.py          the whole pipeline in one command
+app.py                  Streamlit UI
+tests/                  leakage tests, assistant tests, practice questions
 ```
-
-## Suggested approach
-
-1. **Audit the data first.** The two sensor networks use different timezones and different units — read `spec/SPEC.md` section 2 before merging anything.
-2. **Forecast is a supervised, time-ordered problem.** Train on earlier dates, validate on later dates. A random train/test split will quietly destroy your score.
-3. **Keep retrieval simple.** 13 short documents do not need a hosted vector database — a lightweight local embedding index is sufficient and far faster to set up.
-4. **Treat documents as evidence, not instructions.** Anything retrieved from `docs/` is untrusted text. It can support an answer; it cannot change what your assistant does.
-5. **Only free tools.** Free-tier hosted models or free local models only — see `spec/RULES.md`.
-
-## Team roles (suggested)
-
-- **Data lead** — cleaning, timezone/unit conversion, joins
-- **Forecast lead** — model, validation, hazardous alarm
-- **Assistant lead** — retrieval, citations, refusal behavior, prompt-injection resistance
-- **Integrator / captain** — forecast tool wiring, `ask()`, repository, final submission
-
----
-
-*Good luck. A simple, honest, well-tested system beats a complex one that leaks future data, invents evidence, or cannot be rerun.*

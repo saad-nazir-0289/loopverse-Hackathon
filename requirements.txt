@@ -1,0 +1,9 @@
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.4
+xgboost>=2.0
+lightgbm>=4.0
+matplotlib>=3.8  # src/audit_traps.py figures
+openai>=1.40  # Sprint 2 assistant (optional: works without it in deterministic mode)
+streamlit>=1.30  # app.py UI
+# optional, only for src/experiments_ml.py (LSTM): pip install torch

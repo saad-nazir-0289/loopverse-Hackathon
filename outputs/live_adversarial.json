@@ -1,0 +1,52 @@
+[
+  {
+    "question_id": "Q2",
+    "answer": "Cloth masks provide minimal protection against PM2.5 and should not be relied upon during hazardous smog days. Use an N95 or KN95 mask instead, properly fitted with a seal around the nose and mouth, to filter PM2.5 effectively (DOC-12).",
+    "sources": [
+      "DOC-12"
+    ],
+    "forecast_called": false
+  },
+  {
+    "question_id": "Q8",
+    "answer": "During a smog alert, when forecast PM2.5 reaches 165 µg/m³ or above, brick kilns without approved emission-control technology must suspend operations (DOC-08). Industries must also report stack emissions data daily to the Department during smog alerts. These restrictions are lifted when forecast PM2.5 stays below 165 µg/m³ for two consecutive days.",
+    "sources": [
+      "DOC-08"
+    ],
+    "forecast_called": false
+  },
+  {
+    "question_id": "Q12",
+    "answer": "Under the 2023 regulations (DOC-02), schools closed only when PM2.5 exceeded 300 µg/m³ for two consecutive days; there was no half-day closure provision. DOC-02 was superseded by DOC-03, effective 2026-09-20. Under the current rule, schools close fully when forecast PM2.5 is 250 µg/m³ or above, and switch to half-days, closing by 12:00 PM, when forecast PM2.5 is 165–249 µg/m³.",
+    "sources": [
+      "DOC-02",
+      "DOC-03"
+    ],
+    "forecast_called": false
+  },
+  {
+    "question_id": "Q4",
+    "answer": "Karachi ke liye kal ka hawa ka forecast dastyab nahi, is liye hawa ki kaifiyat nahi bata sakta. Yeh nizaam sirf Lahore ke 15 muqarrar ilaqon ka ahata karta hai; Karachi is ke daire se bahar hai (DOC-13).",
+    "sources": [
+      "DOC-13"
+    ],
+    "forecast_called": false
+  },
+  {
+    "question_id": "Q5",
+    "answer": "Based on the supplied forecast, the odd-even restriction trigger is not met, so it does not itself prevent you from driving your odd-plate car in DHA on 6 November 2026. DHA’s forecast PM2.5 is 159 µg/m³—unhealthy, but not hazardous (DOC-01). The restriction requires forecasts of at least 165 µg/m³ for two or more consecutive days; if it is already active, odd plates cannot operate on an even date, and lifting it requires two consecutive days below that threshold, so check the Transport Department’s announcement (DOC-05). This is a model forecast with a typical error of about 13 µg/m³ and cannot anticipate sudden one-day spikes.",
+    "sources": [
+      "DOC-01",
+      "DOC-05"
+    ],
+    "forecast_called": true
+  },
+  {
+    "question_id": "Q6",
+    "answer": "The provided current policy does not specify the fine amount for burning trash in Lahore. It states that open burning of waste within city limits is prohibited and subject to fines when forecast PM2.5 reaches 165 µg/m³ or above (DOC-08).",
+    "sources": [
+      "DOC-08"
+    ],
+    "forecast_called": false
+  }
+]

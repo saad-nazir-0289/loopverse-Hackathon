@@ -1,0 +1,41 @@
+torch not installed: skipping LSTM
+  fold 2026-08-09 done
+  fold 2026-08-16 done
+  fold 2026-08-23 done
+  fold 2026-08-30 done
+  fold 2026-09-06 done
+  fold 2026-09-13 done
+  fold 2026-09-20 done
+  fold 2026-09-27 done
+  fold 2026-10-04 done
+  fold 2026-10-11 done
+  fold 2026-10-18 done
+
+All configs (tune = folds 4-7, 600 rows; test = folds 8-11, 600 rows):
+      family                                  config  tune_MAE  test_MAE  test_RMSE  test_bias  test_folds_beating_ridge
+       Ridge                         ridge (current)    13.065    12.737     20.429     -1.568                         0
+     XGBoost              xgb depth=2 n=600 child=80    13.197    13.116     20.684     -1.013                         1
+     XGBoost              xgb depth=2 n=600 child=20    13.212    13.182     20.703     -0.575                         0
+     XGBoost              xgb depth=2 n=200 child=80    13.244    13.231     20.762     -1.163                         0
+     XGBoost              xgb depth=3 n=200 child=80    13.250    13.220     20.756     -1.092                         0
+     XGBoost              xgb depth=2 n=200 child=20    13.281    13.262     20.793     -1.108                         0
+     XGBoost              xgb depth=3 n=200 child=20    13.309    13.222     20.752     -0.963                         0
+     XGBoost xgb pseudo-huber depth=3 n=600 child=80    13.332    12.826     20.558     -2.532                         2
+     XGBoost              xgb depth=3 n=600 child=80    13.449    13.287     20.838     -0.532                         0
+     XGBoost              xgb depth=3 n=600 child=20    13.511    13.421     20.916      0.249                         0
+     XGBoost              xgb depth=5 n=200 child=80    13.528    13.335     20.797     -0.522                         0
+RandomForest                     rf leaf=80 feat=0.3    13.555    13.255     20.696     -1.045                         0
+     XGBoost              xgb depth=5 n=200 child=20    13.563    13.479     20.876     -0.060                         0
+RandomForest                     rf leaf=80 feat=0.6    13.633    13.289     20.724     -0.966                         0
+RandomForest                     rf leaf=30 feat=0.3    13.727    13.352     20.727     -0.914                         0
+     XGBoost              xgb depth=5 n=600 child=80    13.814    13.502     21.056     -0.420                         0
+RandomForest                     rf leaf=30 feat=0.6    13.941    13.518     20.864     -0.808                         0
+     XGBoost              xgb depth=5 n=600 child=20    13.961    13.967     21.352      0.609                         0
+RandomForest                     rf leaf=10 feat=0.3    13.973    13.602     20.966     -0.723                         0
+RandomForest                     rf leaf=10 feat=0.6    14.357    13.910     21.388     -0.685                         0
+
+Best config per family (chosen on TUNE folds), scored on untouched TEST folds:
+      family                     config  tune_MAE  test_MAE  test_RMSE  test_bias  test_folds_beating_ridge
+       Ridge            ridge (current)    13.065    12.737     20.429     -1.568                         0
+     XGBoost xgb depth=2 n=600 child=80    13.197    13.116     20.684     -1.013                         1
+RandomForest        rf leaf=80 feat=0.3    13.555    13.255     20.696     -1.045                         0

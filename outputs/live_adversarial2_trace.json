@@ -1,0 +1,14 @@
+[
+  {
+    "question_id": "A1",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "A3",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  }
+]

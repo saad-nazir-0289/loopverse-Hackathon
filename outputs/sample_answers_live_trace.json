@@ -1,0 +1,98 @@
+[
+  {
+    "question_id": "Q1",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q2",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q3",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q4",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q5",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q6",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q7",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q8",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q9",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q10",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q11",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q12",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q13",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q14",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q15",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  },
+  {
+    "question_id": "Q16",
+    "mode": "llm",
+    "validation": "ok",
+    "model": "gpt-6.1-sol"
+  }
+]
