@@ -76,3 +76,16 @@ Practice set: `tests/sample_questions.md` (16 questions, all 8 SPEC categories) 
 1. **Validator read document IDs as numbers.** "DOC-12" contains 12, which was flagged as an unsupported number, so 2 correct answers fell back to the deterministic path. `_numbers()` now strips `DOC-\d+` first.
 2. **The model could not link "the 2023 regulations" to DOC-02.** The year only appears in DOC-02's file name and DOC-03's note. Evidence now carries `file`, `supersedes` and `superseded_by`, and the system prompt tells the model to describe the old rule, state its replacement and give the current rule.
 3. **The batch loader silently dropped questions.** Lines without a numeric label that did not end in "?" were skipped. The loader now accepts any label (`1.`, `Q1:`, `A3.`, `**Q4.**`, `Question 6 -`), bullets and markdown tables, and prints a WARNING for every line it skips.
+
+## Retrieval: hybrid BM25 + vector index (`python tests/retrieval_eval.py`)
+`advisor/vectors.py` keeps a local vector index of every document chunk (`data/vector_index/<backend>.npz`). It is rebuilt automatically when the documents change. Backends: OpenAI-compatible embeddings (`text-embedding-3-small`) or local character-n-gram TF-IDF (no key). In hybrid mode, BM25 and vector rankings are merged by reciprocal rank fusion (vector rank weighted 2x), then the same currency/authority rules apply. `ADVISOR_RETRIEVAL=auto` (default) uses hybrid when semantic embeddings are available, else BM25. Every failure falls back: embeddings → TF-IDF → BM25.
+
+24 labelled questions (half are paraphrases with little keyword overlap, 4 in Roman Urdu), hit@3:
+
+| Mode | TF-IDF vectors | OpenAI embeddings |
+|---|---|---|
+| BM25 only | 88% | 92%* |
+| Vector only | 83% | **100%** |
+| Hybrid | 88% | **100%** (MRR 0.94) |
+
+*after adding the Roman Urdu words "buzurgon"/"ehtiyat", found missing through this evaluation set (so the 92%/100% figures are slightly optimistic). Local TF-IDF vectors add nothing over BM25, which is why `auto` uses hybrid only with real embeddings.

@@ -1,11 +1,15 @@
-"""Keyword retrieval (BM25) ranked for applicability, authority and currency, not similarity alone."""
+"""Hybrid retrieval (BM25 + vector index) ranked for applicability, authority and currency, not similarity alone."""
 import math
+import os
 import re
 from collections import Counter
 
 from .config import TOP_K_CHUNKS
 from .documents import chunk_documents, load_documents
 
+# auto = hybrid when semantic embeddings are available, else bm25 (local tfidf vectors add nothing: tests/retrieval_eval.py)
+RETRIEVAL_MODE = os.environ.get("ADVISOR_RETRIEVAL", "auto")  # auto | hybrid | bm25 | vector
+VECTOR_WEIGHT = 2.0  # hybrid: semantic rank counts double (eval: vector 96% vs bm25 88% hit@3)
 STOP = set("""a an the of to in on for and or is are was were be been it this that with as at by from what which who
 how do does can could should would will i we you my our your me us about any there their they them if then than
 so not no yes please tell kya hai hain ka ki ke ko se mein main aur bhi""".split())
@@ -54,14 +58,51 @@ class Retriever:
                 s += self.idf[w] * f * (k1 + 1) / (f + k1 * (1 - b + b * self.len[i] / self.avg))
         return s
 
-    def search(self, query, include_superseded=False, k=TOP_K_CHUNKS, extra_terms=""):
+    def _vectors(self):
+        """Lazy vector index; falls back to local TF-IDF vectors if the embedding API fails."""
+        if getattr(self, "_vi", None) is None:
+            from .vectors import VectorIndex, backend
+            try:
+                self._vi = VectorIndex(self.chunks, backend())
+            except Exception as e:
+                print(f"note: {backend()} embeddings unavailable ({type(e).__name__}); using local tfidf vectors")
+                self._vi = VectorIndex(self.chunks, "tfidf")
+        return self._vi
+
+    def search(self, query, include_superseded=False, k=TOP_K_CHUNKS, extra_terms="", mode=None):
+        """mode: "hybrid" (default: BM25 + vector, reciprocal rank fusion), "bm25" or "vector"."""
+        mode = mode or RETRIEVAL_MODE
+        if mode == "auto":
+            from .vectors import backend
+            mode = "hybrid" if backend() != "tfidf" else "bm25"
         q = tokens(query + " " + extra_terms)
         q = q + [t for w in q for t in tokens(SYNONYMS.get(w, ""))]
+        bm = [self._bm25(q, i) for i in range(len(self.chunks))]
+        if mode == "bm25":
+            fused, keep = bm, [x > 0 for x in bm]
+        else:
+            try:
+                sims = self._vectors().similarities(query + " " + extra_terms)
+            except Exception:
+                sims = None
+            if sims is None:
+                fused, keep = bm, [x > 0 for x in bm]
+            else:
+                vr = {i: r for r, i in enumerate(sorted(range(len(sims)), key=lambda i: -sims[i]))}
+                br = {i: r for r, i in enumerate(sorted(range(len(bm)), key=lambda i: -bm[i]))}
+                top_sim = max(sims)
+                if mode == "vector":
+                    fused = list(sims)
+                    keep = [s_ >= 0.8 * top_sim for s_ in sims]
+                else:  # reciprocal rank fusion; a chunk needs keyword overlap or a strong vector match
+                    fused = [(1 / (60 + br[i]) if bm[i] > 0 else 0) + VECTOR_WEIGHT / (60 + vr[i])
+                             for i in range(len(bm))]
+                    keep = [bm[i] > 0 or sims[i] >= 0.85 * top_sim for i in range(len(bm))]
         scored = []
         for i, c in enumerate(self.chunks):
-            s = self._bm25(q, i)
-            if s <= 0:
+            if not keep[i]:
                 continue
+            s = fused[i]
             # applicability and authority, not similarity alone
             if not c.doc.current:
                 if not include_superseded:
@@ -74,4 +115,5 @@ class Retriever:
         if not scored:
             return []
         top = scored[0][0]
-        return [(s, c) for s, c in scored[:k] if s >= 0.3 * top]
+        cut = 0.3 if mode == "bm25" else 0.45
+        return [(s, c) for s, c in scored[:k] if s >= cut * top]

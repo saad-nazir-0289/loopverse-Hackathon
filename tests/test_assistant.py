@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import os
+os.environ.setdefault("ADVISOR_EMBEDDINGS", "tfidf")  # offline: no embedding API calls in tests
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.stdout.reconfigure(encoding="utf-8")
 from advisor import ask, forecast, llm  # noqa: E402

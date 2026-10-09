@@ -300,3 +300,29 @@ Hyperparameters are chosen on the tune folds 4–7 only. The chosen setting is t
 - LSTM is +1.63 worse and loses every fold. With about 1,300 training sequences, it cannot learn more than a regularized linear model on well-engineered lags, weekday and level features. More epochs made it worse, which points to overfitting.
 
 Full grids: `outputs/experiments_ml_all_configs_*.csv`.
+
+## 10. Spike prediction (can the model find real spikes?)
+
+Hazardous days are almost all **spikes** (47 of 55: more than 45 µg/m³ above the sensor's recent median). Two experiments test whether any model can time them, with the threshold kept at 165.
+
+**10.1 Spike detectors** (`python src/experiments_spike_detectors.py`; 11 walk-forward folds, scored on folds 4–11: 1200 rows, 37 spikes; ROC-AUC 0.5 = coin flip)
+
+| Detector (handbook "simple models" and feature families) | ROC-AUC | Fold range | Top 10% flagged: spikes caught (chance ≈ 3.7) |
+|---|---|---|---|
+| Warm target day (temperature, from holdout weather) | **0.65** | 0.51–0.75 | **7** |
+| Boosting, + target-day weather | 0.54 | 0.43–0.62 | 3 |
+| Random forest, + target-day weather | 0.54 | 0.38–0.77 | 6 |
+| Random forest, all past features (lags, spread, weather lags, area, network, spike history) | 0.51 | 0.32–0.78 | 2 |
+| Logistic, + target-day weather | 0.51 | 0.28–0.67 | 5 |
+| Persistence (spiked on the origin day) | 0.49 | n/a | n/a |
+| Boosting, all past features | 0.48 | 0.28–0.80 | 3 |
+| Recent average level | 0.47 | 0.23–0.70 | 2 |
+| Rolling max / spread | 0.45–0.47 | 0.16–0.65 | 1 |
+| Logistic, all past features | 0.46 | 0.28–0.64 | 2 |
+| Days since last spike / sensor spike rate | 0.45 | 0.22–0.78 | 2–7 |
+
+**10.2 Spike-aware forecast** (`python src/experiments_spikes.py`): classifier + "level + typical spike size" on flagged rows, so that SPEC's 165 rule produces the alarm. Best variant: 2 of 32 hazardous days caught for 33 false spikes, and MAE rose from 12.9 to 15.3. Past-only variants scored exactly at chance (spike PR-AUC 0.031 = base rate).
+
+**10.3 Pattern search** (found on Jul–Sep, checked on Oct): per-sensor periodic schedules (1 caught vs 1.1 by chance), calendar cycles (all p > 0.18), spikes spreading between sensors (0 caught), calm/humid weather (no effect). The 3 *level-driven* hazardous days (no spike: S02 Oct 16, S03 and S08 Oct 17) show that rising November levels can produce hazardous days without spikes. A nested bias correction of the level forecast did not flag any of them in validation.
+
+**Conclusion.** With past data, every model from the handbook ranks spike days at chance level. The only signal is target-day temperature, and it is weak (about 2× chance). Inventing spikes would raise the forecast error and fill the alarm with false positives, so `predictions.csv` keeps the level forecast and the SPEC 165 rule. Spikes are disclosed as the main limitation (RECOMMENDATION.md).

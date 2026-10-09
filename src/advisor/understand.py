@@ -21,7 +21,7 @@ ROMAN_URDU = {
     "bacha": "child", "band": "close closed", "khule": "open", "khula": "open", "chutti": "closure holiday",
     "chhutti": "closure holiday", "aadha": "half", "adha": "half", "maask": "mask", "naqab": "mask",
     "bahar": "outdoor outside", "baahar": "outdoor outside", "ghar": "home indoor", "andar": "indoor",
-    "saans": "breathing breath", "khansi": "cough", "dama": "asthma", "buzurg": "elderly", "boorhay": "elderly",
+    "saans": "breathing breath", "khansi": "cough", "dama": "asthma", "buzurg": "elderly", "buzurgon": "elderly", "ehtiyat": "precautions", "ehtiyaat": "precautions", "boorhay": "elderly",
     "hamla": "pregnant", "hamila": "pregnant", "gari": "vehicle car", "gaari": "vehicle car", "gaadi": "vehicle car",
     "gaariyan": "vehicles", "haspatal": "hospital", "aspatal": "hospital", "mehfooz": "safe", "mahfooz": "safe",
     "khatarnak": "hazardous dangerous", "khatarnaak": "hazardous dangerous", "warzish": "exercise",
