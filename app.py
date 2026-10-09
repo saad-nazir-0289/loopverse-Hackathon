@@ -65,7 +65,8 @@ with st.sidebar:
     st.caption("Documents are treated as evidence, never as instructions. Out-of-scope places and dates "
                "get no number.")
 
-tab_ask, tab_fc, tab_pred = st.tabs(["Ask the assistant", "Forecast", "All predictions"])
+tab_ask, tab_fc, tab_pred, tab_new = st.tabs(["Ask the assistant", "Forecast", "All predictions",
+                                              "Run on new data"])
 
 with tab_ask:
     examples = ["Should schools in Walled City close on 5 November?",
@@ -138,3 +139,59 @@ with tab_pred:
     trend = p.groupby("target_date").predicted_pm25.agg(["min", "mean", "max"])
     st.subheader("City-wide forecast by day")
     st.line_chart(trend)
+
+with tab_new:
+    import tempfile
+
+    from inference import REQUIRED, predict_folder
+    st.subheader("Predict a new data folder with the saved model (no retraining)")
+    st.caption("The folder needs the challenge layout: " + ", ".join(f"`{f}`" for f in REQUIRED)
+               + " (and optionally `holdout/holdout_weather.csv`). The alarm uses the sidebar threshold.")
+    how = st.radio("Data source", ["Folder path on this computer", "Upload the CSV files"], horizontal=True)
+    data_dir = None
+    if how.startswith("Folder"):
+        path = st.text_input("Folder path", placeholder=r"C:\Users\you\Desktop\judges_data")
+        if st.button("Run inference", type="primary", disabled=not path.strip()):
+            data_dir = path.strip().strip('"')
+    else:
+        files = st.file_uploader("Select the CSV files (names as in the layout above)", type="csv",
+                                 accept_multiple_files=True)
+        if st.button("Run inference", type="primary", disabled=not files):
+            tmp = Path(tempfile.mkdtemp(prefix="smog_upload_"))
+            by_name = {Path(r).name: r for r in REQUIRED + ["holdout/holdout_weather.csv"]}
+            unknown = []
+            for f in files:
+                if f.name in by_name:
+                    dest = tmp / by_name[f.name]
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    dest.write_bytes(f.getvalue())
+                else:
+                    unknown.append(f.name)
+            if unknown:
+                st.warning("Ignored (unexpected file names): " + ", ".join(unknown))
+            data_dir = tmp
+    if data_dir:
+        logs = []
+        try:
+            with st.spinner("Cleaning, checking and predicting..."):
+                sub, info = predict_folder(data_dir, alarm_threshold=float(thr), log=logs.append)
+            st.session_state["new_pred"], st.session_state["new_info"] = sub, info
+            st.session_state["new_logs"] = logs
+        except Exception as e:  # missing files, failed timezone/unit checks, etc.
+            st.session_state.pop("new_pred", None)
+            st.error(f"{type(e).__name__}: {e}")
+    if "new_pred" in st.session_state:
+        sub, info = st.session_state["new_pred"], st.session_state["new_info"]
+        for line in st.session_state.get("new_logs", []):
+            st.info(line)
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Rows predicted", info["rows"])
+        c2.metric(f"Hazardous (≥ {info['alarm_threshold']:g})", info["hazardous"])
+        c3.metric("Last observation", info["data_last_observation"])
+        c4.metric("Forecast horizon", info["horizons"])
+        st.caption(f"Model `{info['model']}`, trained on the challenge data through {info['trained_through']}; "
+                   "not retrained on this folder.")
+        st.dataframe(sub, width="stretch", hide_index=True)
+        st.download_button("Download predictions.csv", sub.to_csv(index=False).encode(), "predictions.csv",
+                           "text/csv", type="primary")
+        st.line_chart(sub.groupby("target_date").predicted_pm25.agg(["min", "mean", "max"]))

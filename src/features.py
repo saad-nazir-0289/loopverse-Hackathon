@@ -20,14 +20,15 @@ FFILL_LIMIT = 3  # carry a reading forward at most 3 days over gaps
 SPIKE_JUMP = 45.0  # ug/m3 above the recent median that counts as a spike
 
 
-def load_daily():
-    d = pd.read_csv(ROOT / "data" / "processed" / "daily_pm25.csv", parse_dates=["date"])
+def load_daily(path=None):
+    d = pd.read_csv(path or ROOT / "data" / "processed" / "daily_pm25.csv", parse_dates=["date"])
     return d[["sensor_id", "area", "date", "pm25"]]
 
 
-def load_weather():
-    hist = pd.read_csv(ROOT / "weather" / "weather_history.csv", parse_dates=["date"])
-    hold = pd.read_csv(ROOT / "holdout" / "holdout_weather.csv", parse_dates=["date"])
+def load_weather(data_dir=ROOT):
+    hist = pd.read_csv(Path(data_dir) / "weather" / "weather_history.csv", parse_dates=["date"])
+    hold_path = Path(data_dir) / "holdout" / "holdout_weather.csv"
+    hold = pd.read_csv(hold_path, parse_dates=["date"]) if hold_path.exists() else hist.iloc[:0]
     w = pd.concat([hist, hold]).drop_duplicates("date").sort_values("date")
     assert w["date"].is_unique
     return w.set_index("date")[WEATHER_COLS]
@@ -79,7 +80,7 @@ def origin_features(daily):
     return long
 
 
-def build_rows(daily, weather, origins=None, horizons=HORIZONS):
+def build_rows(daily, weather, origins=None, horizons=HORIZONS, data_dir=ROOT):
     """Cross origin features with horizons, attach weather and (if known) target."""
     of = origin_features(daily)
     if origins is not None:
@@ -106,7 +107,7 @@ def build_rows(daily, weather, origins=None, horizons=HORIZONS):
     # Calendar of the target day is known in advance, so it is not future data.
     # Weekly cycle in the data: Fri about +7, Mon about -8 ug/m3 vs the recent level.
     # Area and network (sensor_metadata.csv): one-hot area, flag for the AQI/PKT network
-    meta = pd.read_csv(ROOT / "weather" / "sensor_metadata.csv").set_index("sensor_id")
+    meta = pd.read_csv(Path(data_dir) / "weather" / "sensor_metadata.csv").set_index("sensor_id")
     for sid in meta.index:
         X[f"area_{sid}"] = (X["sensor_id"] == sid).astype(float)
     X["net_b2"] = (X["sensor_id"].map(meta["batch"]) == "batch_2").astype(float)

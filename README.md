@@ -40,6 +40,14 @@ Without `--model`, `forecast.py` re-validates all 14 candidates and picks the be
 | One question | `python src/assistant.py "Should schools in DHA close tomorrow?"` | JSON in the SPEC schema |
 | Experiments (optional) | `python src/experiments.py`, `python src/experiments_ml.py` | model and alarm comparisons |
 
+## Inference only: predict new data with the saved model (no retraining)
+`python src/forecast.py` saves the selected fitted model to `models/model.joblib` (with `models/model_info.json`). Any folder in the challenge layout can then be predicted without training:
+```bash
+python src/inference.py --data C:/path/to/judges_folder                # -> outputs/inference_predictions.csv
+python src/inference.py --data C:/path/to/judges_folder --out predictions.csv --alarm-threshold 165
+```
+In the UI: **Run on new data** tab. Enter a folder path (or upload the CSV files), click **Run inference**, then download `predictions.csv`. The folder's data goes through the same cleaning checks (timezone, units, coverage); a wrong or incomplete folder gives a clear error. Running `python src/inference.py --data .` on this repository reproduces the committed `predictions.csv` exactly.
+
 ## Running on the judges' own files
 Put files with the **same names and columns** in the same folders, then rerun `python src/run_all.py`. Nothing is hard-coded to the supplied dates, sensors or row counts.
 

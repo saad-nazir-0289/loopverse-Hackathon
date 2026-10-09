@@ -50,9 +50,9 @@ def aqi_to_pm25(aqi):
     return out
 
 
-def load_batch1():
+def load_batch1(data_dir=ROOT):
     """Network A: UTC timestamps, raw PM2.5."""
-    df = pd.read_csv(ROOT / "sensors" / "batch_1_sensor_data.csv")
+    df = pd.read_csv(Path(data_dir) / "sensors" / "batch_1_sensor_data.csv")
     ts_utc = pd.to_datetime(df["timestamp"])
     assert ts_utc.notna().all(), "unparseable batch_1 timestamps"
     ts_pkt = ts_utc + PKT_OFFSET
@@ -70,9 +70,9 @@ def load_batch1():
         date_utc_naive=("date_utc_naive", "first"), pm25_b1=("pm25_b1", "mean"))
 
 
-def load_batch2():
+def load_batch2(data_dir=ROOT):
     """Network B: Pakistan local dates, AQI."""
-    df = pd.read_csv(ROOT / "sensors" / "batch_2_sensor_data.csv")
+    df = pd.read_csv(Path(data_dir) / "sensors" / "batch_2_sensor_data.csv")
     df["date"] = pd.to_datetime(df["timestamp"]).dt.normalize()  # already Pakistan time
     df["aqi_b2"] = df["reading_value"].replace(SENTINEL, np.nan)
     a = df["aqi_b2"].dropna()
@@ -90,9 +90,10 @@ def flag_stuck(values, min_run=STUCK_MIN_RUN):
     return ((run_len >= min_run) & v.notna()).to_numpy()
 
 
-def build_daily():
-    meta = pd.read_csv(ROOT / "weather" / "sensor_metadata.csv")
-    b1, b2 = load_batch1(), load_batch2()
+def build_daily(data_dir=ROOT):
+    """Clean the data in data_dir (default: this project). Same checks for any folder."""
+    meta = pd.read_csv(Path(data_dir) / "weather" / "sensor_metadata.csv")
+    b1, b2 = (load_batch1(), load_batch2()) if data_dir == ROOT else (load_batch1(data_dir), load_batch2(data_dir))
 
     # Both files contain all 15 sensors on the same PKT dates once aligned.
     daily = b1.merge(b2, on=["sensor_id", "date"], how="outer", validate="1:1")

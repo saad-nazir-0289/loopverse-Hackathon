@@ -14,13 +14,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
 from sklearn.ensemble import ExtraTreesRegressor, HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import ElasticNet, HuberRegressor, Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from xgboost import XGBRegressor
 
 from sklearn.metrics import average_precision_score, r2_score
 
@@ -48,12 +46,27 @@ def mean7(train, test):
 def _residual_model(make_model):
     """Learn y - mean7 so tree models can follow the level outside the training range."""
     def fit_predict(train, test):
+        model = fit(train)
+        base = test["mean7"].fillna(test["lag0"])
+        return base.to_numpy() + model.predict(test[FEATURES])
+
+    def fit(train):
         tr = train.dropna(subset=["y", "mean7"])
         model = make_model()  # imputer/scaler live inside the pipeline: fit on train only
         model.fit(tr[FEATURES], tr["y"] - tr["mean7"])
-        base = test["mean7"].fillna(test["lag0"])
-        return base.to_numpy() + model.predict(test[FEATURES])
+        return model
+    fit_predict.fit = fit  # used by save_model() for inference without retraining
     return fit_predict
+
+
+def XGBRegressor(**kw):  # lazy: xgboost is only needed if this model is trained
+    from xgboost import XGBRegressor as M
+    return M(**kw)
+
+
+def LGBMRegressor(**kw):  # lazy: lightgbm is only needed if this model is trained
+    from lightgbm import LGBMRegressor as M
+    return M(**kw)
 
 
 def _linear(estimator):
@@ -214,8 +227,27 @@ def write_predictions(rows, last_obs, model_name, alarm_threshold=HAZARD_THRESHO
     sub = sub[template_cols]
     validate_submission(sub, holdout)
     sub.to_csv(ROOT / "predictions.csv", index=False)
+    save_model(model_name, train, last_obs, alarm_threshold)
     print(f"\nwrote predictions.csv with model={model_name}, alarm at predicted >= {alarm_threshold:g}: {len(sub)} rows, "
           f"{sub.hazardous.sum()} hazardous, PM2.5 range {sub.predicted_pm25.min():.1f}..{sub.predicted_pm25.max():.1f}")
+
+
+def save_model(model_name, train, last_obs, alarm_threshold):
+    """Save the fitted model so src/inference.py can predict new data without retraining."""
+    fit = getattr(MODELS[model_name], "fit", None)
+    if fit is None:  # blends have no single fitted object
+        print(f"note: {model_name} is a blend; not saved for inference")
+        return
+    import json
+    import joblib
+    (ROOT / "models").mkdir(exist_ok=True)
+    info = {"model_name": model_name, "features": list(FEATURES), "base_feature": "mean7",
+            "target": "PM2.5 next days, learned as y - mean7", "trained_through": str(last_obs.date()),
+            "train_rows": int(len(train)), "max_horizon_trained": int(train["h"].max()),
+            "alarm_threshold_default": float(alarm_threshold)}
+    joblib.dump({"model": fit(train), **info}, ROOT / "models" / "model.joblib")
+    (ROOT / "models" / "model_info.json").write_text(json.dumps(info, indent=2), encoding="utf-8")
+    print(f"saved models/model.joblib ({model_name}, trained through {info['trained_through']})")
 
 
 def validate_submission(sub, holdout):
