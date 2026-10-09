@@ -8,7 +8,7 @@ Next-day PM2.5 forecasts and a hazardous alarm for 15 Lahore sensors (Sprint 1),
 | Assistant | `ask(question)` and `forecast(location, target_date)` in [`src/assistant.py`](src/assistant.py) |
 | Answers to the question set | `answers.json` / `answers.csv` (generated, see below) |
 | Recommendation | [`RECOMMENDATION.md`](RECOMMENDATION.md) |
-| AI error log | [`AI_ERROR_LOG.md`](AI_ERROR_LOG.md) |
+| AI error log | [`AI_ERROR_LOG.md`](AI_ERROR_LOG.md) (3 required entries) + [`AI_ERROR_LOG_ADDITIONAL.md`](AI_ERROR_LOG_ADDITIONAL.md) |
 | Method and evidence | [`SPRINT1.md`](SPRINT1.md), [`SPRINT2.md`](SPRINT2.md), [`outputs/trap_audit.md`](outputs/trap_audit.md) |
 | Original challenge README | [`CHALLENGE_README.md`](CHALLENGE_README.md) |
 
