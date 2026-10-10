@@ -1,0 +1,19 @@
+  fold 2026-08-09 done
+  fold 2026-08-16 done
+  fold 2026-08-23 done
+  fold 2026-08-30 done
+  fold 2026-09-06 done
+  fold 2026-09-13 done
+  fold 2026-09-20 done
+  fold 2026-09-27 done
+  fold 2026-10-04 done
+  fold 2026-10-11 done
+  fold 2026-10-18 done
+
+Scored folds 4-11: 1200 rows, 32 hazardous, 37 spikes (spike base rate 0.031 = PR-AUC chance)
+                           model    MAE  q90 coverage  alarm flagged  caught (of 32)  false alarms  precision  gap ROC-AUC (spikes)  gap PR-AUC
+submitted ridge level (SPEC 165) 12.901           NaN              0               0             0        NaN                   NaN         NaN
+     Method B, LightGBM quantile 13.097         0.854             27               1            26      0.037                 0.470       0.029
+       Method B, linear quantile 13.056         0.864              7               0             7      0.000                 0.447       0.030
+
+HOLDOUT (linear quantile): 24 of 150 rows flagged (q90 >= 165); q90 range 121.2..172.0; wrote outputs/predictions_method_b.csv
