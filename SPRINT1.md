@@ -326,3 +326,24 @@ Hazardous days are almost all **spikes** (47 of 55: more than 45 µg/m³ above t
 **10.3 Pattern search** (found on Jul–Sep, checked on Oct): per-sensor periodic schedules (1 caught vs 1.1 by chance), calendar cycles (all p > 0.18), spikes spreading between sensors (0 caught), calm/humid weather (no effect). The 3 *level-driven* hazardous days (no spike: S02 Oct 16, S03 and S08 Oct 17) show that rising November levels can produce hazardous days without spikes. A nested bias correction of the level forecast did not flag any of them in validation.
 
 **Conclusion.** With past data, every model from the handbook ranks spike days at chance level. The only signal is target-day temperature, and it is weak (about 2× chance). Inventing spikes would raise the forecast error and fill the alarm with false positives, so `predictions.csv` keeps the level forecast and the SPEC 165 rule. Spikes are disclosed as the main limitation (RECOMMENDATION.md).
+
+## 11. Two-part (hurdle) spike model (`python src/experiments_hurdle.py`)
+Stage 1 classifier P(spike): ridge-style L2 logistic or gradient boosting, each with no imbalance handling, class weights, or 5:1 undersampling. Stage 2 spike size: ridge regression on spike rows, or a constant median. Combined *hard* (level + size when P ≥ t, with t tuned on earlier folds only) or *soft* (level + P × size). Scored on folds 4–11: 1200 rows, 32 hazardous, 37 spikes (base rate 3.1%).
+
+| Variant (best of each kind) | Spike ROC-AUC | Mean P (true rate 0.031) | Flagged | Caught | False alarms | MAE |
+|---|---|---|---|---|---|---|
+| Level only (submitted) | n/a | n/a | 0 | 0/32 | 0 | **12.9** |
+| Ridge-logistic, no weighting, 30+ past features | 0.39 | 0.027 | 14 | 1/32 | 13 | 13.9 |
+| Ridge-logistic, class weights, past+temp | 0.50 | 0.339 | 124 | 5/32 | 119 | 21.3 |
+| Boosting, class weights, past+temp | 0.48 | 0.223 | 424 | 9/32 | 415 | 43.3 |
+| **Lean ridge-logistic (temp, Δtemp, level), class weights** | **0.63** | 0.351 | 161 | **9/32** | 152 | 23.5 |
+| Lean ridge-logistic, no weighting | 0.63 | 0.025 | 73 | 5/32 | 68 | 17.6 |
+
+Stage 2 (size, given a spike): ridge size MAE 26.5 vs **constant median 24.1** (true size 90 ± 29 µg/m³). The size is stable, but the timing is not.
+
+**Findings**
+1. **Stage 1 is the bottleneck.** With past-only data the classifier is at or below chance. Only target-day temperature adds signal (≈ 0.63).
+2. **Fewer features beat many:** 3 features give 0.63 ROC-AUC vs 0.39–0.50 for 30+ features. With about 50 training spikes, a large model learns noise.
+3. **Imbalance handling breaks calibration.** Class weights or undersampling raise the average predicted P from 0.03 to 0.22–0.37, so the *soft* expected value overshoots (MAE 26–39). Weighting may only be used for *ranking*, with the threshold tuned separately.
+4. **Soft combination never alarms.** A calibrated P (≈ 0.03) × size 90 adds about 3 µg/m³, so it never crosses 165; an alarm needs the *hard* decision.
+5. **Best trade-off: 9 of 32 hazardous days caught for 152 false alarms** (precision 5.6%, about 2× chance) and MAE 12.9 → 23.5. The submission keeps the level forecast and the SPEC 165 rule.
